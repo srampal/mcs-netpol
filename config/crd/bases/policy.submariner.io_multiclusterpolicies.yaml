@@ -1,0 +1,181 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.7.0
+  creationTimestamp: null
+  name: multiclusterpolicies.policy.submariner.io
+spec:
+  group: policy.submariner.io
+  names:
+    kind: MultiClusterPolicy
+    listKind: MultiClusterPolicyList
+    plural: multiclusterpolicies
+    singular: multiclusterpolicy
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: MultiClusterPolicy is the Schema for the multiclusterpolicies
+          API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: MultiClusterPolicySpec defines the desired state of MultiClusterPolicy
+            properties:
+              egress:
+                description: List of egress rules to be applied to the selected pods.
+                items:
+                  description: MultiClusterPolicyEgressRule  describes a particular
+                    set of traffic that is allowed out of pods matched by a MultiClusterPolicySpec's
+                    podSelector
+                  properties:
+                    to:
+                      description: List of destination MultiCluster Service Imports
+                        for outgoing traffic of pods selected for this rule. Items
+                        in this list are combined using a logical OR operation. If
+                        this field is empty or missing, this rule matches all destinations
+                        (traffic not restricted by destination). If this field is
+                        present and contains at least one item, this rule allows traffic
+                        only if the traffic matches at least one item in the to list.
+                      items:
+                        description: MultiClusterPolicyPeer describes a peer to allow
+                          traffic to.
+                        properties:
+                          namespaceSelector:
+                            description: Selects Namespaces using cluster-scoped labels.
+                              This field must be present
+                            properties:
+                              matchExpressions:
+                                description: matchExpressions is a list of label selector
+                                  requirements. The requirements are ANDed.
+                                items:
+                                  description: A label selector requirement is a selector
+                                    that contains values, a key, and an operator that
+                                    relates the key and values.
+                                  properties:
+                                    key:
+                                      description: key is the label key that the selector
+                                        applies to.
+                                      type: string
+                                    operator:
+                                      description: operator represents a key's relationship
+                                        to a set of values. Valid operators are In,
+                                        NotIn, Exists and DoesNotExist.
+                                      type: string
+                                    values:
+                                      description: values is an array of string values.
+                                        If the operator is In or NotIn, the values
+                                        array must be non-empty. If the operator is
+                                        Exists or DoesNotExist, the values array must
+                                        be empty. This array is replaced during a
+                                        strategic merge patch.
+                                      items:
+                                        type: string
+                                      type: array
+                                  required:
+                                  - key
+                                  - operator
+                                  type: object
+                                type: array
+                              matchLabels:
+                                additionalProperties:
+                                  type: string
+                                description: matchLabels is a map of {key,value} pairs.
+                                  A single {key,value} in the matchLabels map is equivalent
+                                  to an element of matchExpressions, whose key field
+                                  is "key", the operator is "In", and the values array
+                                  contains only "value". The requirements are ANDed.
+                                type: object
+                            type: object
+                          serviceImportRefs:
+                            description: List of ServiceImports
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      type: array
+                  type: object
+                type: array
+              podSelector:
+                description: Selects the pods to which this MultiClusterPolicy object
+                  applies. This field is NOT optional and follows standard label selector
+                  semantics. An empty podSelector matches all pods in this namespace.
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: A label selector requirement is a selector that
+                        contains values, a key, and an operator that relates the key
+                        and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: operator represents a key's relationship to
+                            a set of values. Valid operators are In, NotIn, Exists
+                            and DoesNotExist.
+                          type: string
+                        values:
+                          description: values is an array of string values. If the
+                            operator is In or NotIn, the values array must be non-empty.
+                            If the operator is Exists or DoesNotExist, the values
+                            array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: matchLabels is a map of {key,value} pairs. A single
+                      {key,value} in the matchLabels map is equivalent to an element
+                      of matchExpressions, whose key field is "key", the operator
+                      is "In", and the values array contains only "value". The requirements
+                      are ANDed.
+                    type: object
+                type: object
+            required:
+            - podSelector
+            type: object
+          status:
+            description: MultiClusterPolicyStatus defines the observed state of MultiClusterPolicy
+            properties:
+              valid:
+                description: Boolbean flag indicates if policy is valid and applied
+                  to the data plane
+                type: boolean
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

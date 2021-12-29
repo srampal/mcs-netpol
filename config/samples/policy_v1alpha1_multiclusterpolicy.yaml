@@ -1,0 +1,6 @@
+apiVersion: policy.submariner.io/v1alpha1
+kind: MultiClusterPolicy
+metadata:
+  name: multiclusterpolicy-sample
+spec:
+  # TODO(user): Add fields here

@@ -1,0 +1,16 @@
+domain: submariner.io
+layout:
+- go.kubebuilder.io/v3
+projectName: mcs-netpol
+repo: github.com/srampal/mcs-netpol
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: submariner.io
+  group: policy
+  kind: MultiClusterPolicy
+  path: github.com/srampal/mcs-netpol/api/v1alpha1
+  version: v1alpha1
+version: "3"

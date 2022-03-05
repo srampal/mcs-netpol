@@ -19,9 +19,27 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager main.go
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot
+# FROM gcr.io/distroless/static:nonroot
+# WORKDIR /
+# COPY --from=builder /workspace/manager .
+# USER 65532:65532
+
+# ENTRYPOINT ["/manager"]
+
+FROM fedora:34
+
 WORKDIR /
+
+RUN dnf -y install --nodocs --setopt=install_weak_deps=0 \
+           iproute iptables iptables-nft ipset procps-ng && \
+    dnf -y clean all
+
 COPY --from=builder /workspace/manager .
-USER 65532:65532
+
+# Wrapper scripts to choose the appropriate iptables
+# https://github.com/kubernetes-sigs/iptables-wrappers
+COPY scripts/iptables-wrapper-installer.sh /
+RUN /iptables-wrapper-installer.sh
 
 ENTRYPOINT ["/manager"]
+

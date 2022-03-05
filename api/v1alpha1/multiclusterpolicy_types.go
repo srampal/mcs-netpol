@@ -28,24 +28,23 @@ type MultiClusterPolicySpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-        // Selects the pods to which this MultiClusterPolicy object applies. 
+	// Selects the pods to which this MultiClusterPolicy object applies.
 	// This field is NOT optional and follows standard
 	// label selector semantics. An empty podSelector matches all pods in this
 	// namespace.
 	PodSelector metav1.LabelSelector `json:"podSelector" protobuf:"bytes,1,opt,name=podSelector"`
 
-        // List of egress rules to be applied to the selected pods. 
+	// List of egress rules to be applied to the selected pods.
 	// +optional
 	Egress []MultiClusterPolicyEgressRule `json:"egress,omitempty" protobuf:"bytes,3,rep,name=egress"`
-
 }
 
 // MultiClusterPolicyEgressRule  describes a particular set of traffic that is allowed out of pods
 // matched by a MultiClusterPolicySpec's podSelector
-type MultiClusterPolicyEgressRule  struct {
+type MultiClusterPolicyEgressRule struct {
 
-	// List of destination MultiCluster Service Imports for outgoing traffic 
-        // of pods selected for this rule.
+	// List of destination MultiCluster Service Imports for outgoing traffic
+	// of pods selected for this rule.
 	// Items in this list are combined using a logical OR operation. If this field is
 	// empty or missing, this rule matches all destinations (traffic not restricted by
 	// destination). If this field is present and contains at least one item, this rule
@@ -54,26 +53,24 @@ type MultiClusterPolicyEgressRule  struct {
 	To []MultiClusterPolicyPeer `json:"to,omitempty" protobuf:"bytes,2,rep,name=to"`
 }
 
-
 // MultiClusterPolicyPeer describes a peer to allow traffic to.
-type MultiClusterPolicyPeer  struct {
+type MultiClusterPolicyPeer struct {
 
-        // Selects Namespaces using cluster-scoped labels. This field 
-        // must be present 
+	// Selects Namespaces using cluster-scoped labels. This field
+	// must be present
 	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty" protobuf:"bytes,2,opt,name=namespaceSelector"`
 
-        //List of ServiceImports
-        ServiceImportRefs  []string `json:"serviceImportRefs,omitempty" protobuf:"bytes,2,opt,name=serviceImportRefs"`
+	//List of ServiceImports
+	ServiceImportRefs []string `json:"serviceImportRefs,omitempty" protobuf:"bytes,2,opt,name=serviceImportRefs"`
 }
-
 
 // MultiClusterPolicyStatus defines the observed state of MultiClusterPolicy
 type MultiClusterPolicyStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-        // Boolbean flag indicates if policy is valid and applied to the data plane
-        Valid bool `json:"valid,omitempty"`
+	// Boolbean flag indicates if policy is valid and applied to the data plane
+	Valid bool `json:"valid,omitempty"`
 }
 
 //+kubebuilder:object:root=true

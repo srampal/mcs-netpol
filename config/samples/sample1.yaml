@@ -1,0 +1,9 @@
+apiVersion: policy.submariner.io/v1alpha1
+kind: MultiClusterPolicy
+metadata:
+  name: sample1
+spec:
+  podSelector:
+    matchLabels:
+      role: db
+

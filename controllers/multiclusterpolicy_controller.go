@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	policyv1alpha1 "github.com/srampal/mcs-netpol/api/v1alpha1"
@@ -65,28 +66,82 @@ func (r *MultiClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.R
 		// requeue (we'll need to wait for a new notification), and we can get them
 		// on deleted requests.
 		return ctrl.Result{}, client.IgnoreNotFound(err)
-	} else {
-
-		ipt, err := r.mcsPolInitIptablesChain(ctx)
-
-		if err != nil {
-			logr.Error(err, "Could not create IPTables chain")
-			return ctrl.Result{}, err
-		}
-		fmt.Printf("\n Created IPTables %+v\n", ipt)
-
-		if ipt != nil {
-			fmt.Printf("\n Created IPTables %#v\n", *ipt)
-		}
-
 	}
 
-	err1 := errors.New("MCS-NETPOL reconciler loop not yet fully implemented")
+	mcsPolFinalizerName := "multiclusterpolicies.submariner.io/finalizer"
 
+	if mcsPol.ObjectMeta.DeletionTimestamp.IsZero() {
+
+		logr.Info("\n Found DeletionTimestamp Zero! \n")
+
+		// Register the finalizer and update the object
+		if !controllerutil.ContainsFinalizer(&mcsPol, mcsPolFinalizerName) {
+			controllerutil.AddFinalizer(&mcsPol, mcsPolFinalizerName)
+		}
+		logr.Info("\n Registering Finalizer \n")
+		if err := r.Update(ctx, &mcsPol); err != nil {
+			logr.Info("\n Error registering finalizer into mcsPol! \n")
+			return ctrl.Result{}, err
+		}
+	} else {
+		if controllerutil.ContainsFinalizer(&mcsPol, mcsPolFinalizerName) {
+
+			if err := r.handleDeletion(ctx, req, &mcsPol); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+
+		controllerutil.RemoveFinalizer(&mcsPol, mcsPolFinalizerName)
+		if err := r.Update(ctx, &mcsPol); err != nil {
+			logr.Info("\n Error removing finalizer from mcsPol! \n")
+			return ctrl.Result{}, err
+		}
+	}
+
+	if err := r.handleCreateOrUpdate(ctx, req, &mcsPol); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	err1 := errors.New("MCS-NETPOL reconciler() not yet fully implemented")
 	logr.Error(err1, "Exitting ..")
-
 	return ctrl.Result{}, err1
 
+}
+
+func (r *MultiClusterPolicyReconciler) handleCreateOrUpdate(ctx context.Context, req ctrl.Request,
+	mcsPol *policyv1alpha1.MultiClusterPolicy) error {
+
+	logr := log.FromContext(ctx)
+
+	logr.Info("\n Entered MCS-NETPOL handleCreateOrUpdate()  \n")
+
+	ipt, err := r.mcsPolInitIptablesChain(ctx)
+
+	if err != nil {
+		logr.Error(err, "Could not create IPTables chain")
+		return err
+	}
+	fmt.Printf("\n Created IPTables %+v\n", ipt)
+
+	if ipt != nil {
+		fmt.Printf("\n Created IPTables %#v\n", *ipt)
+	}
+
+	err1 := errors.New("MCS-NETPOL handleCreateOrUpdate() not yet fully implemented")
+	logr.Error(err1, "Exitting ..")
+	return err1
+}
+
+func (r *MultiClusterPolicyReconciler) handleDeletion(ctx context.Context, req ctrl.Request,
+	mcsPol *policyv1alpha1.MultiClusterPolicy) error {
+
+	logr := log.FromContext(ctx)
+
+	logr.Info("\n Entered MCS-NETPOL handleDeletion()  \n")
+
+	err1 := errors.New("MCS-NETPOL handleDeletion() not yet fully implemented")
+	logr.Error(err1, "Exitting ..")
+	return err1
 }
 
 func (r *MultiClusterPolicyReconciler) mcsPolInitIptablesChain(ctx context.Context) (*iptables.IPTables, error) {

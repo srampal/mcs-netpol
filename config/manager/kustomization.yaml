@@ -13,4 +13,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: srampal/mcs-netpol
-  newTag: "0.3"
+  newTag: "0.4"

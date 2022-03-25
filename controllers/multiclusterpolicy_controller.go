@@ -25,7 +25,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	//	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	policyv1alpha1 "github.com/srampal/mcs-netpol/api/v1alpha1"
@@ -42,6 +44,7 @@ type MultiClusterPolicyReconciler struct {
 //+kubebuilder:rbac:groups=policy.submariner.io,resources=multiclusterpolicies,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=policy.submariner.io,resources=multiclusterpolicies/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=policy.submariner.io,resources=multiclusterpolicies/finalizers,verbs=update
+//+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -68,34 +71,44 @@ func (r *MultiClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	mcsPolFinalizerName := "multiclusterpolicies.submariner.io/finalizer"
+	// mcsPolFinalizerName := "multiclusterpolicies.submariner.io/finalizer"
 
 	if mcsPol.ObjectMeta.DeletionTimestamp.IsZero() {
 
 		logr.Info("\n Found DeletionTimestamp Zero! \n")
 
-		// Register the finalizer and update the object
-		if !controllerutil.ContainsFinalizer(&mcsPol, mcsPolFinalizerName) {
-			controllerutil.AddFinalizer(&mcsPol, mcsPolFinalizerName)
-		}
-		logr.Info("\n Registering Finalizer \n")
-		if err := r.Update(ctx, &mcsPol); err != nil {
-			logr.Info("\n Error registering finalizer into mcsPol! \n")
-			return ctrl.Result{}, err
-		}
+		/**
+		      Removing finalizer logic for now
+
+		  		// Register the finalizer and update the object
+		  		if !controllerutil.ContainsFinalizer(&mcsPol, mcsPolFinalizerName) {
+		  			controllerutil.AddFinalizer(&mcsPol, mcsPolFinalizerName)
+		  		}
+		  		logr.Info("\n Registering Finalizer \n")
+		  		if err := r.Update(ctx, &mcsPol); err != nil {
+		  			logr.Info("\n Error registering finalizer into mcsPol! \n")
+		  			return ctrl.Result{}, err
+		  		}
+		  **/
 	} else {
-		if controllerutil.ContainsFinalizer(&mcsPol, mcsPolFinalizerName) {
-
-			if err := r.handleDeletion(ctx, req, &mcsPol); err != nil {
-				return ctrl.Result{}, err
-			}
-		}
-
-		controllerutil.RemoveFinalizer(&mcsPol, mcsPolFinalizerName)
-		if err := r.Update(ctx, &mcsPol); err != nil {
-			logr.Info("\n Error removing finalizer from mcsPol! \n")
+		if err := r.handleDeletion(ctx, req, &mcsPol); err != nil {
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{}, nil
+		/**
+				if controllerutil.ContainsFinalizer(&mcsPol, mcsPolFinalizerName) {
+
+					if err := r.handleDeletion(ctx, req, &mcsPol); err != nil {
+						return ctrl.Result{}, err
+					}
+				}
+
+				controllerutil.RemoveFinalizer(&mcsPol, mcsPolFinalizerName)
+				if err := r.Update(ctx, &mcsPol); err != nil {
+					logr.Info("\n Error removing finalizer from mcsPol! \n")
+					return ctrl.Result{}, err
+				}
+		**/
 	}
 
 	if err := r.handleCreateOrUpdate(ctx, req, &mcsPol); err != nil {
@@ -104,7 +117,7 @@ func (r *MultiClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	err1 := errors.New("MCS-NETPOL reconciler() not yet fully implemented")
 	logr.Error(err1, "Exitting ..")
-	return ctrl.Result{}, err1
+	return ctrl.Result{}, nil
 
 }
 
@@ -127,9 +140,78 @@ func (r *MultiClusterPolicyReconciler) handleCreateOrUpdate(ctx context.Context,
 		fmt.Printf("\n Created IPTables %#v\n", *ipt)
 	}
 
+	// Get list of all mcsPols
+
+	var mcsPols policyv1alpha1.MultiClusterPolicyList
+
+	err = r.List(ctx, &mcsPols, client.InNamespace(req.NamespacedName.Namespace))
+
+	if err != nil {
+
+		fmt.Printf("\n Could not retrieve policy list! \n")
+		return errors.Wrap(err, "could not retrieve policy list")
+	}
+
+	fmt.Printf("Got policy list! \n")
+
+	for i, mcsPol := range mcsPols.Items {
+		fmt.Printf("Got policy %d)  %#v\n", i, mcsPol)
+		if err1 := r.programPolicyInDataplane(ctx, req, &mcsPol); err1 != nil {
+			logr.Error(err, "Error programming policy !")
+			return err1
+		}
+	}
+
 	err1 := errors.New("MCS-NETPOL handleCreateOrUpdate() not yet fully implemented")
 	logr.Error(err1, "Exitting ..")
-	return err1
+	return nil
+}
+
+func (r *MultiClusterPolicyReconciler) programPolicyInDataplane(ctx context.Context, req ctrl.Request,
+	mcsPol *policyv1alpha1.MultiClusterPolicy) error {
+
+	logr := log.FromContext(ctx)
+
+	logr.Info("\n Entered programPolicyInDataplane()  \n")
+
+	// Get the list of pods selected by this policy
+	selector, err := metav1.LabelSelectorAsSelector(&mcsPol.Spec.PodSelector)
+	if err != nil {
+		logr.Error(err, "Error creating pod label selector in programPolicyinDataplane\n")
+		return errors.Wrap(err, "error creating pod label selector")
+	}
+
+	pods := &corev1.PodList{}
+
+	err = r.List(ctx, pods, client.InNamespace(req.NamespacedName.Namespace), client.MatchingLabelsSelector{Selector: selector})
+	if err != nil {
+		logr.Error(err, "Error getting selected pod list")
+		return errors.Wrap(err, "error getting selected pod list")
+	}
+
+	logr.Info("\n Got the pod list \n")
+	fmt.Printf("\n Got the pod list %d items \n", len(pods.Items))
+
+	// Get the list of policy peers in this policy
+
+	fmt.Printf("\n Policy Rules & peers ... \n")
+
+	for i, rule := range mcsPol.Spec.Egress {
+		fmt.Printf("\n Got rule %d)\n", i)
+		for j, peer := range rule.To {
+			fmt.Printf("\n Got peer %d)\n", j)
+			for k, si := range peer.ServiceImportRefs {
+				fmt.Printf("\n Got serviceImport %d)    %#v\n", k, si)
+			}
+		}
+	}
+
+	// For each pod and each policy peer, program an iptables rules
+
+	err1 := errors.New("programPolicyInDataplane() not yet fully implemented")
+	logr.Error(err1, "Exitting ..")
+	return nil
+
 }
 
 func (r *MultiClusterPolicyReconciler) handleDeletion(ctx context.Context, req ctrl.Request,
@@ -141,7 +223,7 @@ func (r *MultiClusterPolicyReconciler) handleDeletion(ctx context.Context, req c
 
 	err1 := errors.New("MCS-NETPOL handleDeletion() not yet fully implemented")
 	logr.Error(err1, "Exitting ..")
-	return err1
+	return nil
 }
 
 func (r *MultiClusterPolicyReconciler) mcsPolInitIptablesChain(ctx context.Context) (*iptables.IPTables, error) {

@@ -6,4 +6,8 @@ spec:
   podSelector:
     matchLabels:
       role: db
+  egress:
+    - to:
+      - serviceImportRefs:
+        - testService
 

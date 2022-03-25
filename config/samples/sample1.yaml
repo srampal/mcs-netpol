@@ -9,5 +9,5 @@ spec:
   egress:
     - to:
       - serviceImportRefs:
-        - testService
+        - nginx-default-cluster2 
 

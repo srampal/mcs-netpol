@@ -28,9 +28,11 @@ import (
 	//	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	policyv1alpha1 "github.com/srampal/mcs-netpol/api/v1alpha1"
+	mcsv1a1 "sigs.k8s.io/mcs-api/pkg/apis/v1alpha1"
 )
 
 // MultiClusterPolicyReconciler reconciles a MultiClusterPolicy object
@@ -45,6 +47,8 @@ type MultiClusterPolicyReconciler struct {
 //+kubebuilder:rbac:groups=policy.submariner.io,resources=multiclusterpolicies/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=policy.submariner.io,resources=multiclusterpolicies/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=pods/status,verbs=get;list;watch
+//+kubebuilder:rbac:groups="multicluster.x-k8s.io",resources=serviceimports,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -192,9 +196,15 @@ func (r *MultiClusterPolicyReconciler) programPolicyInDataplane(ctx context.Cont
 	logr.Info("\n Got the pod list \n")
 	fmt.Printf("\n Got the pod list %d items \n", len(pods.Items))
 
-	// Get the list of policy peers in this policy
+	// Get the list of policy peers, rules and service imports in this policy
+	// and add the corresponding iptable rule
 
-	fmt.Printf("\n Policy Rules & peers ... \n")
+	serviceImport := &mcsv1a1.ServiceImport{}
+	var siName types.NamespacedName
+	// Hard coded for now, will be programmable eventually
+	siName.Namespace = "submariner-operator"
+
+	logr.Info("\n Policy Rules & peers ... \n")
 
 	for i, rule := range mcsPol.Spec.Egress {
 		fmt.Printf("\n Got rule %d)\n", i)
@@ -202,6 +212,19 @@ func (r *MultiClusterPolicyReconciler) programPolicyInDataplane(ctx context.Cont
 			fmt.Printf("\n Got peer %d)\n", j)
 			for k, si := range peer.ServiceImportRefs {
 				fmt.Printf("\n Got serviceImport %d)    %#v\n", k, si)
+
+				/* For each ServiceImport, program rules for each source pod in the list */
+				// create namespaced name for the service import
+
+				siName.Name = si
+				if err := r.Get(ctx, siName, serviceImport); err != nil {
+					fmt.Printf("\n Could not retrieve si (%s, %s) \n",
+						siName.Namespace, siName.Name)
+					logr.Error(err, "unable to fetch ServiceImport Object")
+					return err
+				} else {
+					fmt.Printf("\n Got ServiceImport object %#v \n", serviceImport)
+				}
 			}
 		}
 	}

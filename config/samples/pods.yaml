@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: netutils-blue
+  labels:
+    color: blue
+spec:
+  containers:
+  - name: netutils
+    image: srampal/nginx-netutils:2
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: netutils-red
+  labels:
+    color: red
+spec:
+  containers:
+  - name: netutils
+    image: srampal/nginx-netutils:2
+    ports:
+    - containerPort: 80
+---

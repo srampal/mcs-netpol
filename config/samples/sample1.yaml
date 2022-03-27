@@ -5,7 +5,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      role: db
+      color: blue
   egress:
     - to:
       - serviceImportRefs:

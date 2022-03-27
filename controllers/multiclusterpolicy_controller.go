@@ -61,14 +61,14 @@ type MultiClusterPolicyReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *MultiClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
-	logr := log.FromContext(ctx)
+	loggr := log.FromContext(ctx)
 
-	logr.Info("\n Entered MCS-NETPOL reconciler \n")
+	loggr.Info("\n Entered MCS-NETPOL reconciler \n")
 
 	var mcsPol policyv1alpha1.MultiClusterPolicy
 
 	if err := r.Get(ctx, req.NamespacedName, &mcsPol); err != nil {
-		logr.Error(err, "unable to fetch McsPol")
+		loggr.Error(err, "unable to fetch McsPol")
 		// we'll ignore not-found errors, since they can't be fixed by an immediate
 		// requeue (we'll need to wait for a new notification), and we can get them
 		// on deleted requests.
@@ -79,7 +79,7 @@ func (r *MultiClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	if mcsPol.ObjectMeta.DeletionTimestamp.IsZero() {
 
-		logr.Info("\n Found DeletionTimestamp Zero! \n")
+		loggr.Info("\n Found DeletionTimestamp Zero! \n")
 
 		/**
 		      Removing finalizer logic for now
@@ -88,9 +88,9 @@ func (r *MultiClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.R
 		  		if !controllerutil.ContainsFinalizer(&mcsPol, mcsPolFinalizerName) {
 		  			controllerutil.AddFinalizer(&mcsPol, mcsPolFinalizerName)
 		  		}
-		  		logr.Info("\n Registering Finalizer \n")
+		  		loggr.Info("\n Registering Finalizer \n")
 		  		if err := r.Update(ctx, &mcsPol); err != nil {
-		  			logr.Info("\n Error registering finalizer into mcsPol! \n")
+		  			loggr.Info("\n Error registering finalizer into mcsPol! \n")
 		  			return ctrl.Result{}, err
 		  		}
 		  **/
@@ -109,7 +109,7 @@ func (r *MultiClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 				controllerutil.RemoveFinalizer(&mcsPol, mcsPolFinalizerName)
 				if err := r.Update(ctx, &mcsPol); err != nil {
-					logr.Info("\n Error removing finalizer from mcsPol! \n")
+					loggr.Info("\n Error removing finalizer from mcsPol! \n")
 					return ctrl.Result{}, err
 				}
 		**/
@@ -120,7 +120,7 @@ func (r *MultiClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	err1 := errors.New("MCS-NETPOL reconciler() not yet fully implemented")
-	logr.Error(err1, "Exitting ..")
+	loggr.Error(err1, "Exitting ..")
 	return ctrl.Result{}, nil
 
 }
@@ -128,14 +128,14 @@ func (r *MultiClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.R
 func (r *MultiClusterPolicyReconciler) handleCreateOrUpdate(ctx context.Context, req ctrl.Request,
 	mcsPol *policyv1alpha1.MultiClusterPolicy) error {
 
-	logr := log.FromContext(ctx)
+	loggr := log.FromContext(ctx)
 
-	logr.Info("\n Entered MCS-NETPOL handleCreateOrUpdate()  \n")
+	loggr.Info("\n Entered MCS-NETPOL handleCreateOrUpdate()  \n")
 
 	ipt, err := r.mcsPolInitIptablesChain(ctx)
 
 	if err != nil {
-		logr.Error(err, "Could not create IPTables chain")
+		loggr.Error(err, "Could not create IPTables chain")
 		return err
 	}
 	fmt.Printf("\n Created IPTables %+v\n", ipt)
@@ -161,27 +161,27 @@ func (r *MultiClusterPolicyReconciler) handleCreateOrUpdate(ctx context.Context,
 	for i, mcsPol := range mcsPols.Items {
 		fmt.Printf("Got policy %d)  %#v\n", i, mcsPol)
 		if err1 := r.programPolicyInDataplane(ctx, req, &mcsPol); err1 != nil {
-			logr.Error(err, "Error programming policy !")
+			loggr.Error(err, "Error programming policy !")
 			return err1
 		}
 	}
 
 	err1 := errors.New("MCS-NETPOL handleCreateOrUpdate() not yet fully implemented")
-	logr.Error(err1, "Exitting ..")
+	loggr.Error(err1, "Exitting ..")
 	return nil
 }
 
 func (r *MultiClusterPolicyReconciler) programPolicyInDataplane(ctx context.Context, req ctrl.Request,
 	mcsPol *policyv1alpha1.MultiClusterPolicy) error {
 
-	logr := log.FromContext(ctx)
+	loggr := log.FromContext(ctx)
 
-	logr.Info("\n Entered programPolicyInDataplane()  \n")
+	loggr.Info("\n Entered programPolicyInDataplane()  \n")
 
 	// Get the list of pods selected by this policy
 	selector, err := metav1.LabelSelectorAsSelector(&mcsPol.Spec.PodSelector)
 	if err != nil {
-		logr.Error(err, "Error creating pod label selector in programPolicyinDataplane\n")
+		loggr.Error(err, "Error creating pod label selector in programPolicyinDataplane\n")
 		return errors.Wrap(err, "error creating pod label selector")
 	}
 
@@ -189,11 +189,11 @@ func (r *MultiClusterPolicyReconciler) programPolicyInDataplane(ctx context.Cont
 
 	err = r.List(ctx, pods, client.InNamespace(req.NamespacedName.Namespace), client.MatchingLabelsSelector{Selector: selector})
 	if err != nil {
-		logr.Error(err, "Error getting selected pod list")
+		loggr.Error(err, "Error getting selected pod list")
 		return errors.Wrap(err, "error getting selected pod list")
 	}
 
-	logr.Info("\n Got the pod list \n")
+	loggr.Info("\n Got the pod list \n")
 	fmt.Printf("\n Got the pod list %d items \n", len(pods.Items))
 
 	// Get the list of policy peers, rules and service imports in this policy
@@ -204,7 +204,7 @@ func (r *MultiClusterPolicyReconciler) programPolicyInDataplane(ctx context.Cont
 	// Hard coded for now, will be programmable eventually
 	siName.Namespace = "submariner-operator"
 
-	logr.Info("\n Policy Rules & peers ... \n")
+	loggr.Info("\n Policy Rules & peers ... \n")
 
 	for i, rule := range mcsPol.Spec.Egress {
 		fmt.Printf("\n Got rule %d)\n", i)
@@ -220,10 +220,32 @@ func (r *MultiClusterPolicyReconciler) programPolicyInDataplane(ctx context.Cont
 				if err := r.Get(ctx, siName, serviceImport); err != nil {
 					fmt.Printf("\n Could not retrieve si (%s, %s) \n",
 						siName.Namespace, siName.Name)
-					logr.Error(err, "unable to fetch ServiceImport Object")
+					loggr.Error(err, "unable to fetch ServiceImport Object")
 					return err
 				} else {
 					fmt.Printf("\n Got ServiceImport object %#v \n", serviceImport)
+					//program iptables rules for each pod and this service import
+					// Skipping validation checks for now
+					dstIp := serviceImport.Spec.IPs[0]
+					for l, pod := range pods.Items {
+
+						if pod.Status.Phase != "Running" {
+							fmt.Printf("\n Skipping pod  no. %d not in running state\n", l)
+							continue
+						}
+
+						srcIp := pod.Status.PodIP
+
+						if err := r.ipt.Insert("filter", "MCS-OUTPUT", 1,
+							"-s", srcIp, "-d", dstIp, "-j", "DROP"); err != nil {
+							loggr.Error(err, "Error inserting rule in MCS-OUTPUT chain\n")
+							return errors.Wrap(err, "unable to insert Jump in OUTPUT chain")
+						} else {
+							fmt.Printf("\n Success programming iptables rule s %s d %s\n", srcIp, dstIp)
+						}
+
+					}
+
 				}
 			}
 		}
@@ -232,7 +254,7 @@ func (r *MultiClusterPolicyReconciler) programPolicyInDataplane(ctx context.Cont
 	// For each pod and each policy peer, program an iptables rules
 
 	err1 := errors.New("programPolicyInDataplane() not yet fully implemented")
-	logr.Error(err1, "Exitting ..")
+	loggr.Error(err1, "Exitting ..")
 	return nil
 
 }
@@ -240,20 +262,20 @@ func (r *MultiClusterPolicyReconciler) programPolicyInDataplane(ctx context.Cont
 func (r *MultiClusterPolicyReconciler) handleDeletion(ctx context.Context, req ctrl.Request,
 	mcsPol *policyv1alpha1.MultiClusterPolicy) error {
 
-	logr := log.FromContext(ctx)
+	loggr := log.FromContext(ctx)
 
-	logr.Info("\n Entered MCS-NETPOL handleDeletion()  \n")
+	loggr.Info("\n Entered MCS-NETPOL handleDeletion()  \n")
 
 	err1 := errors.New("MCS-NETPOL handleDeletion() not yet fully implemented")
-	logr.Error(err1, "Exitting ..")
+	loggr.Error(err1, "Exitting ..")
 	return nil
 }
 
 func (r *MultiClusterPolicyReconciler) mcsPolInitIptablesChain(ctx context.Context) (*iptables.IPTables, error) {
 
-	logr := log.FromContext(ctx)
+	loggr := log.FromContext(ctx)
 
-	logr.Info("\n Entered mcsPolInitIpTablesChain \n")
+	loggr.Info("\n Entered mcsPolInitIpTablesChain \n")
 
 	if r.ipt != nil {
 		return r.ipt, nil
@@ -280,37 +302,37 @@ func (r *MultiClusterPolicyReconciler) mcsPolInitIptablesChain(ctx context.Conte
 
 func initMcsOutputChain(ctx context.Context, ipt *iptables.IPTables) error {
 
-	logr := log.FromContext(ctx)
+	loggr := log.FromContext(ctx)
 
-	logr.Info("\n Entered initMcsOutputChain \n")
+	loggr.Info("\n Entered initMcsOutputChain \n")
 
 	if err := createChainIfNotExists(ctx, ipt, "filter", "MCS-OUTPUT"); err != nil {
-		logr.Error(err, "Error in createChainIfNotExists() \n")
+		loggr.Error(err, "Error in createChainIfNotExists() \n")
 		return errors.Wrap(err, "unable to create MCS-OUTPUT chain in iptables")
 	}
 
-	logr.Info("\n Created new chain MCS-OUTPUT\n")
+	loggr.Info("\n Created new chain MCS-OUTPUT\n")
 
 	forwardToMcsOutputRuleSpec := []string{"-j", "MCS-OUTPUT"}
 
 	if err := ipt.Insert("filter", "OUTPUT", 1, forwardToMcsOutputRuleSpec...); err != nil {
-		logr.Error(err, "Error inserting Jump to MCS-OUTPUT chain\n")
+		loggr.Error(err, "Error inserting Jump to MCS-OUTPUT chain\n")
 		return errors.Wrap(err, "unable to insert Jump in OUTPUT chain")
 	}
 
-	logr.Info("\n Added Jump in OUTPUT chain to MCS-OUTPUT\n")
+	loggr.Info("\n Added Jump in OUTPUT chain to MCS-OUTPUT\n")
 
 	return nil
 }
 
 func createChainIfNotExists(ctx context.Context, ipt *iptables.IPTables, table, chain string) error {
 
-	logr := log.FromContext(ctx)
+	loggr := log.FromContext(ctx)
 
 	existingChains, err := ipt.ListChains(table)
 
 	if err != nil {
-		logr.Error(err, "Error ipt.ListChains \n")
+		loggr.Error(err, "Error ipt.ListChains \n")
 		return errors.Wrap(err, "error listing IP table chains")
 	}
 

@@ -315,12 +315,12 @@ func initMcsOutputChain(ctx context.Context, ipt *iptables.IPTables) error {
 
 	forwardToMcsOutputRuleSpec := []string{"-j", "MCS-OUTPUT"}
 
-	if err := ipt.Insert("filter", "OUTPUT", 1, forwardToMcsOutputRuleSpec...); err != nil {
+	if err := ipt.Insert("filter", "FORWARD", 1, forwardToMcsOutputRuleSpec...); err != nil {
 		loggr.Error(err, "Error inserting Jump to MCS-OUTPUT chain\n")
 		return errors.Wrap(err, "unable to insert Jump in OUTPUT chain")
 	}
 
-	loggr.Info("\n Added Jump in OUTPUT chain to MCS-OUTPUT\n")
+	loggr.Info("\n Added Jump in FORWARD chain to MCS-OUTPUT\n")
 
 	return nil
 }

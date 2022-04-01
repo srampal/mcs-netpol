@@ -7,7 +7,7 @@ Note: This is a limited proof of concept  implementation currently for basic dem
 This repo defines an api (api/va1lpha1/multiclusterpolicy_types.go) and includes a golang implementation of a controller for this api. This implementation should work with multiple CNI implementations and multiple implementations of the K8s MultiCluster Services (MCS) API,  although has so far only been tested using the upstream Kubernetes, weave CNI and the [Submariner implementation](https://submariner.io/) of the MCS api. 
 
 
-## Quick demo
+## Basic demo
 
 1. Setup 2 k8s clusters with an implementation of the Multi-Cluster Services API (example
 using the procedure outlined at [this link](https://submariner.io/getting-started/quickstart/kind/) 

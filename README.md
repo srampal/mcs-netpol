@@ -2,7 +2,7 @@
 
 PoC of CRD and controller for an enhanced network policy to address multi-cluster service networking implementation of the Multi-Cluster Services API. 
 
-Note: This is a limited proof of concept  implementation currently for basic demo purposes. The longer term goal is to have a more complete implementation based on the eventual upstream kubernetes community's  Multi-Cluster Network Policy API definition (a current [draft proposal](https://docs.google.com/document/d/1sLq_1CwfdvhmqxslQRdt7-RjLFsZRJkd/edit#heading=h.gjdgxs) [slides](https://docs.google.com/presentation/d/1j4ZQTGmtBD7eRXzCzwYKRbqdNU5GFVtWnWorK_KBYI4/edit#slide=id.g122964c5eb3_0_0))
+Note: This is a limited proof of concept  implementation currently for basic demo purposes. The longer term goal is to have a more complete implementation based on the eventual upstream kubernetes community's  Multi-Cluster Network Policy API definition (a current draft proposal[slides](https://docs.google.com/presentation/d/1j4ZQTGmtBD7eRXzCzwYKRbqdNU5GFVtWnWorK_KBYI4/edit#slide=id.g122964c5eb3_0_0))
 
 This repo defines an api (api/va1lpha1/multiclusterpolicy_types.go) and includes a golang implementation of a controller for this api. This implementation should work with multiple CNI implementations and multiple implementations of the K8s MultiCluster Services (MCS) API,  although has so far only been tested using the upstream Kubernetes, weave CNI and the [Submariner implementation](https://submariner.io/) of the MCS api. 
 
